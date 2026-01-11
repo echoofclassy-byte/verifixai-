@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>VerifiX AI — Trust What You See</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy: "#070b1f",
+            navy2: "#11173a",
+            cyan: "#38f9ff",
+            pink: "#ff3d81",
+            soft: "#a5b4fc"
+          }
+        }
+      }
+    }
+  </script>
+</head>
+
+<body class="bg-gradient-to-br from-navy via-navy2 to-black text-gray-200 min-h-screen">
+
+<!-- ================= LOGIN MODAL ================= -->
+<div id="loginModal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
+  <div class="bg-navy2 p-6 sm:p-8 rounded-2xl w-full max-w-md border border-white/10">
+    <h2 class="text-2xl font-bold text-cyan mb-6 text-center">
+      Login to VerifiX AI
+    </h2>
+
+    <input id="loginEmail" type="email" placeholder="Email"
+      class="w-full mb-4 p-3 bg-navy rounded border border-white/10 focus:ring-2 focus:ring-cyan">
+
+    <input id="loginPassword" type="password" placeholder="Password"
+      class="w-full mb-6 p-3 bg-navy rounded border border-white/10 focus:ring-2 focus:ring-cyan">
+
+    <button onclick="handleLogin()"
+      class="w-full py-3 bg-gradient-to-r from-cyan to-pink rounded-lg font-semibold text-black">
+      Login
+    </button>
+
+    <p id="loginError" class="text-red-400 text-sm mt-4 hidden text-center"></p>
+  </div>
+</div>
+
+<!-- ================= MAIN APP ================= -->
+<div id="app" class="hidden">
+
+<header class="p-4 sm:p-6 border-b border-white/10 flex justify-between items-center">
+  <h1 class="text-xl sm:text-2xl font-bold text-cyan">🛡️ VerifiX AI</h1>
+  <button onclick="logout()" class="text-sm text-gray-400 hover:text-cyan">Logout</button>
+</header>
+
+<section class="max-w-4xl mx-auto p-4 sm:p-8">
+
+  <h2 class="text-2xl sm:text-4xl font-bold mb-6 text-soft text-center sm:text-left">
+    Live Verification
+  </h2>
+
+  <textarea id="demoText"
+    class="w-full bg-navy p-4 rounded-lg border border-white/10 focus:ring-2 focus:ring-cyan text-sm sm:text-base"
+    rows="5"
+    placeholder="Enter text, news, or claim..."></textarea>
+
+  <div class="mt-4 flex flex-wrap gap-3 justify-center sm:justify-start">
+    <button onclick="verifyText()" class="px-4 py-2 bg-cyan rounded text-black w-full sm:w-auto">
+      Verify Text
+    </button>
+    <button onclick="verifyLink()" class="px-4 py-2 bg-pink rounded text-black w-full sm:w-auto">
+      Verify Link
+    </button>
+  </div>
+
+  <!-- PDF -->
+  <div class="mt-6">
+    <input type="file" id="pdfFile" class="block mb-2 w-full text-sm">
+    <button onclick="verifyPDF()" class="px-4 py-2 bg-indigo-500 rounded w-full sm:w-auto">
+      Verify PDF
+    </button>
+  </div>
+
+  <!-- Image -->
+  <div class="mt-6">
+    <input type="file" id="imgFile" class="block mb-2 w-full text-sm">
+    <button onclick="verifyImage()" class="px-4 py-2 bg-purple-500 rounded w-full sm:w-auto">
+      Verify Image
+    </button>
+  </div>
+
+  <!-- Result -->
+  <div id="resultBox" class="mt-8 hidden">
+    <h3 id="verdict" class="text-lg sm:text-xl font-bold text-center sm:text-left"></h3>
+
+    <div class="mt-2">
+      <div class="text-sm text-gray-400 mb-1">Confidence</div>
+      <div class="w-full bg-white/10 rounded h-3">
+        <div id="confidenceBar"
+          class="h-3 rounded bg-gradient-to-r from-cyan to-pink"></div>
+      </div>
+    </div>
+
+    <pre id="demoResult"
+      class="mt-4 bg-navy p-4 rounded-lg border border-white/10 text-sm whitespace-pre-wrap overflow-x-auto"></pre>
+  </div>
+
+</section>
+</div>
+
+<!-- ================= SCRIPT ================= -->
+<script>
+const API = "http://YOUR_PUBLIC_IP:8000";
+
+// LOGIN
+async function handleLogin() {
+  const email = loginEmail.value;
+  const password = loginPassword.value;
+
+  const res = await fetch(API + "/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password })
+  });
+
+  const data = await res.json();
+
+  if (data.success) {
+    loginModal.classList.add("hidden");
+    app.classList.remove("hidden");
+  } else {
+    loginError.textContent = "Invalid login credentials";
+    loginError.classList.remove("hidden");
+  }
+}
+
+function logout() {
+  app.classList.add("hidden");
+  loginModal.classList.remove("hidden");
+}
+
+// SHOW RESULT
+function showResult(data) {
+  resultBox.classList.remove("hidden");
+  verdict.textContent = "Verdict: " + data.verdict;
+  confidenceBar.style.width = data.confidence + "%";
+  demoResult.textContent = data.explanation;
+}
+
+// TEXT
+async function verifyText() {
+  const res = await fetch(API + "/verify/text", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content: demoText.value })
+  });
+  showResult(await res.json());
+}
+
+// LINK
+async function verifyLink() {
+  const res = await fetch(API + "/verify/link", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url: demoText.value })
+  });
+  showResult(await res.json());
+}
+
+// PDF
+async function verifyPDF() {
+  const fd = new FormData();
+  fd.append("file", pdfFile.files[0]);
+
+  const res = await fetch(API + "/verify/pdf", {
+    method: "POST",
+    body: fd
+  });
+
+  showResult(await res.json());
+}
+
+// IMAGE
+async function verifyImage() {
+  const fd = new FormData();
+  fd.append("file", imgFile.files[0]);
+
+  const res = await fetch(API + "/verify/image", {
+    method: "POST",
+    body: fd
+  });
+
+  showResult(await res.json());
+}
+</script>
+
+</body>
+</html>
